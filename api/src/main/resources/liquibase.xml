@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+	xmlns="http://www.liquibase.org/xml/ns/dbchangelog/1.9"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog/1.9
+                  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-1.9.xsd">
+
+	<!-- See http://wiki.openmrs.org/display/docs/Module+liquibase+File for 
+		documentation on this file. See http://www.liquibase.org/manual/home#available_database_refactorings 
+		for a list of supported elements and attributes -->
+
+	<!-- Uncomment the changeset below if you want to make the Item class persistable, 
+		see also Item and LoginauditDaoTest -->
+
+	
+	<changeSet id="auditlog-2021-02-18-19:55" author="vishwajeet">
+		<preConditions onFail="MARK_RAN">
+			<not>
+				<tableExists tableName="login_audit" />
+			</not>
+		</preConditions>
+		<comment>
+			Creating the login_audit table
+		</comment>
+		<createTable tableName="login_audit">
+			<column name="login_audit_id" type="int" autoIncrement="true">
+				<constraints primaryKey="true" nullable="false" />
+			</column>
+			<column name="user_id" type="int">
+				<constraints nullable="false" />
+			</column>
+			<column name="startDateTime" type="DATETIME" />
+			<column name="endtDateTime" type="DATETIME" />
+
+		</createTable>
+		<addForeignKeyConstraint
+			constraintName="loginaudit_user_fk" baseTableName="login_audit"
+			baseColumnNames="user_id" referencedTableName="users"
+			referencedColumnNames="user_id" deferrable="false"
+			initiallyDeferred="false" />
+
+	</changeSet>
+
+</databaseChangeLog>
