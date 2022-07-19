@@ -9,6 +9,15 @@
  */
 package org.openmrs.module.loginaudit.web.controller;
 
+import java.io.IOException;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.codehaus.jackson.map.ObjectMapper;
+import org.openmrs.api.AdministrationService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.loginaudit.api.LoginauditService;
 import org.openmrs.module.webservices.rest.SimpleObject;
@@ -43,18 +52,34 @@ public class LoginauditController extends MainResourceController {
 	@Autowired
 	LoginauditService exampleService;
 	
+	public static final String CORS_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials";
+	
+	public static final String CORS_ORIGIN = "https://ln3.hispindia.org";
+	
+	public static final String CORS_ALLOW_ORIGIN = "Access-Control-Allow-Origin";
+	
+	public static final String CORS_MAX_AGE = "Access-Control-Max-Age";
+	
+	public static final String CORS_ALLOW_HEADERS = "Access-Control-Allow-Headers";
+	
+	public static final String CORS_EXPOSE_HEADERS = "Access-Control-Expose-Headers";
+	
+	public static final String CORS_REQUEST_HEADERS = "Access-Control-Request-Header";
+	
 	/**
 	 * Tells the user their sessionId, and whether or not they are authenticated.
 	 * 
 	 * @param request
 	 * @return
+	 * @throws IOException
 	 * @should return the session id if the user is authenticated
 	 * @should return the session id if the user is not authenticated
 	 */
 	
 	@RequestMapping(method = RequestMethod.GET)
 	@ResponseBody
-	public Object get(WebRequest request) {
+	public void get(WebRequest request, HttpServletRequest req, HttpServletResponse response) throws IOException {
+		AdministrationService adminService = Context.getAdministrationService();
 		boolean authenticated = Context.isAuthenticated();
 		SimpleObject session = new SimpleObject();
 		session.add("sessionId", request.getSessionId()).add("authenticated", authenticated);
@@ -69,7 +94,16 @@ public class LoginauditController extends MainResourceController {
 			exampleService.saveLoginDetail(Context.getAuthenticatedUser().getUserId());
 		}
 		
-		return session;
+		String permission = adminService.getGlobalProperty("Access-Control-Pemission");
+		if (permission.equals("true")) {
+			response.addHeader(CORS_ALLOW_CREDENTIALS, "true");
+			response.addHeader(CORS_ALLOW_ORIGIN, CORS_ORIGIN);
+			response.addHeader("Vary", CORS_ORIGIN);
+		}
+		
+		ServletOutputStream out = response.getOutputStream();
+		
+		new ObjectMapper().writeValue(out, session);
 	}
 	
 	/**
@@ -80,9 +114,13 @@ public class LoginauditController extends MainResourceController {
 	@RequestMapping(method = RequestMethod.DELETE)
 	@ResponseBody
 	@ResponseStatus(value = HttpStatus.NO_CONTENT)
-	public void delete() {
+	public void delete(HttpServletRequest request, HttpServletResponse response) {
 		exampleService.saveLogoutDetail(Context.getAuthenticatedUser().getUserId());
 		Context.logout();
+		HttpSession session = request.getSession(false);
+		if (session != null) {
+			session.invalidate();
+		}
 		
 	}
 	
